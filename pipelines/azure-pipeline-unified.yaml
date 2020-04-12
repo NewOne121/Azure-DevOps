@@ -1,0 +1,109 @@
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: group
+
+stages:
+  - stage: "Get_latest_build_artifacts"
+    jobs:
+      - job:
+        workspace:
+          clean: all
+        steps:
+          - script: python -m pip install --upgrade pip setuptools wheel requests pyyaml argparse
+            displayName: 'Install_python_deps'
+          - task: Bash@3
+            displayName: 'Set_pipeline_environment'
+            inputs:
+              targetType: 'inline'
+              script: |
+                python $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/scripts/setup_environment.py
+                bash $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/vars/pipeline.env | tr -d "\'"
+            env:
+              APIUSER: $(devops_apiuser)
+              APIPASS: $(devops_apipass)
+
+          - task: Bash@3
+            displayName: 'Override default variables'
+            condition: and(succeeded(), eq(variables['env_override'], 'true'))
+            inputs:
+              targetType: 'inline'
+              script: |
+                python $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/scripts/setup_environment.py --override
+            env:
+              APIUSER: $(apiuser)
+              APIPASS: $(apipass)
+
+          - task: Bash@3
+            displayName: 'Debug env'
+            inputs:
+              targetType: 'inline'
+              script: |
+                printenv
+
+          - task: DownloadPackage@1
+            displayName: 'Get latest configuration package'
+            inputs:
+              packageType: 'maven'
+              feed: ''
+              view: ''
+              definition: '$(packageid)'
+              version: '$(package.version)'
+              downloadPath: '$(System.DefaultWorkingDirectory)'
+
+          - task: Bash@3
+            displayName: 'Debug'
+            inputs:
+              targetType: 'inline'
+              script: |
+                ls -la $SYSTEM_DEFAULTWORKINGDIRECTORY
+                ls -la $AGENT_WORKFOLDER
+                ls -la $AGENT_WORKFOLDER/_temp
+                printenv
+          - task: qetza.replacetokens.replacetokens-task.replacetokens@3
+            displayName: 'Replace tokens in  yaml config files'
+            inputs:
+              targetFiles: '$(Agent.WorkFolder)\_temp\**\*.yaml'
+            env:
+              TAOF_KEYVAULT_TENANTID: $(keyvault_tenantId)
+              TAOF_KEYVAULT_CLIENTID: $(keyvault_clientId)
+              TAOF_KEYVAULT_CLIENTSECRET: $(keyvault_clientSecret)
+              CASSANDRA_PASSWORD: $(cassandra_password)
+              DATABRICKS_USERNAME: $(databricks_username)
+
+          - task: Bash@3
+            displayName: 'Debug'
+            inputs:
+              targetType: 'inline'
+              script: |
+                for file in  $(find $AGENT_WORKFOLDER/_temp -type f -name '*.yaml'); do
+                  echo $file; cat $file; echo; echo; echo; done
+
+          - task: Bash@3
+            displayName: 'Deploy configurations to Databricks'
+            inputs:
+              targetType: 'inline'
+              script: |
+                databricksJarPath="$(find $SYSTEM_DEFAULTWORKINGDIRECTORY -type f -name 'deployment*.jar')"
+                if $(printenv | grep -i 'package_nodeploy' | grep -q true);
+                then
+                  for excluded in $(printenv | grep -i 'package_nodeploy' | grep true );
+                  do
+                    rmpackage=$(echo $excluded | sed -rn 's#(.*)_PACKAGE_NODEPLOY(.*)*#\L\1#p')
+                    echo "Excluded package: $rmpackage";
+                    rm -r $AGENT_WORKFOLDER/_temp/$rmpackage;
+                  done
+                fi
+                for file in $(find $AGENT_WORKFOLDER/_temp -mindepth 1 -type f);
+                do
+                  mv $file $AGENT_WORKFOLDER/_temp
+                done
+                find $AGENT_WORKFOLDER/_temp -mindepth 1 -type d -print0 | xargs -0 rm -r
+                ls -la $AGENT_WORKFOLDER/_temp
+                for item in $(find $AGENT_WORKFOLDER/_temp -type f -name '*deployment.yaml');
+                do
+                  java -version;
+                  #echo "java -cp $databricksJarPath sample --config $item";
+                  java -cp $databricksJarPath sample --config $item;
+                done

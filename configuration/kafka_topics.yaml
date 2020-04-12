@@ -1,0 +1,4 @@
+topics:
+  - name: 'mynewtopic'
+    replication-factor: 1
+    partitions: 2

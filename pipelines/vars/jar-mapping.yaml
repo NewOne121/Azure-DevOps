@@ -1,0 +1,9 @@
+jarfiles:
+  - name: sample.jar
+    jar_config_name: sample.yaml
+    kind: sample
+    jobs:
+    - name: 'Sample'
+      job_config_name: sample-job.yaml
+      job_jar_config_template_name: sample.yaml
+      job_jar_deployment_template_name: sample.deployment.yaml

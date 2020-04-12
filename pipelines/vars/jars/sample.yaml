@@ -1,0 +1,9 @@
+variables:
+  - name: checkpoint
+    value: /temp/checkpoint
+  - name: config_file_name
+    value: sample.yaml
+  - name: jar_name
+    value: sample
+  - name: main_class_name
+    value: sample

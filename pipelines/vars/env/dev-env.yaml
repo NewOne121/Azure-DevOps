@@ -1,0 +1,16 @@
+variables:
+  - name: cassandra_host
+    value: host123
+  - name: cassandra_username
+    value: user123
+  - name: cleanup_topic
+    value: data_removed
+    value: https://azuredatabricks.net/api/2.0/
+  - name: kafka_bootstrap_servers
+    value: 10.77.1.133:6667,10.77.1.140:6667
+  - name: output_topic
+    value: raw_segment
+  - name: source_topic
+    value: raw_segment
+  - name: taof_keyvault_url
+    value: 'https://'

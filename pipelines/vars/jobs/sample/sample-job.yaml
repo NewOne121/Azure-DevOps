@@ -1,0 +1,7 @@
+variables:
+  - name: sample_config_file_name
+    value: sample.yaml
+  - name: sample_cron_expression
+    value: "0 0 1 */7 * ?"
+  - name: sample_job_name
+    value: Sample
