@@ -1,0 +1,4 @@
+topics:
+  - name: 'sample'
+    replication-factor: 2
+    partitions: 2

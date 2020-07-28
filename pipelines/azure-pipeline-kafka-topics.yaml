@@ -31,6 +31,7 @@ stages:
               targetType: 'inline'
               script: |
                 printenv
+                nc -vz 10.77.1.133 6667
                 python $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/scripts/create_kafka_topics.py $SYSTEM_DEFAULTWORKINGDIRECTORY/configuration/kafka_topics.yaml
 
           - task: PythonScript@0

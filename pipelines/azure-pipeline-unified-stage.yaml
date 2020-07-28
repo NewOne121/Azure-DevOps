@@ -11,7 +11,7 @@ pool:
 variables:
   - group: DevOps
   - name: TARGET
-    value: dev
+    value: stage
 
 stages:
   - stage: 'Deploy_jobs_to_Databricks'
@@ -20,8 +20,8 @@ stages:
         workspace:
           clean: all
         steps:
-          - checkout: reponame
-            condition: and(succeededOrFailed(), eq(variables['src.project'], 'reponame'))
+          - checkout: analytics
+            condition: and(succeededOrFailed(), eq(variables['src.project'], 'dp-analytics-2.0'))
           - script: python -m pip install --upgrade pip setuptools wheel requests pyyaml argparse
             displayName: 'Install_python_deps'
           - task: Bash@3
@@ -30,7 +30,7 @@ stages:
               targetType: 'inline'
               failOnStderr: true
               script: |
-                python $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/scripts/setup_environment.py --project $SRC_PROJECT || echo "echo $?; kill -9 $$" | bash
+                python $SYSTEM_DEFAULTWORKINGDIRECTORY//pipelines/scripts/setup_environment.py --project $SRC_PROJECT || echo "echo $?; kill -9 $$" | bash
                 cat $(echo $SYSTEM_DEFAULTWORKINGDIRECTORY/$SRC_PROJECT/deployment/vars/pipeline.env) | sed -rn 's#^"?(.*)?\"{1}$#\1#p'
             env:
               APIUSER: $(devops_apiuser)
@@ -42,7 +42,7 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                python $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/scripts/setup_environment.py --override
+                python $SYSTEM_DEFAULTWORKINGDIRECTORY//pipelines/scripts/setup_environment.py --override
             env:
               APIUSER: $(devops_apiuser)
               APIPASS: $(devops_apipass)
@@ -54,7 +54,7 @@ stages:
               targetType: 'inline'
               failOnStderr: true
               script: |
-                python $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/scripts/setup_environment.py --validate\
+                python $SYSTEM_DEFAULTWORKINGDIRECTORY//pipelines/scripts/setup_environment.py --validate\
                 || echo "kill -9 $$" | bash
             env:
               APIUSER: $(devops_apiuser)
@@ -67,14 +67,8 @@ stages:
               script: |
                 printenv
 
-          - task: PowerShell@2
-            displayName: 'Debug env powershell'
-            inputs:
-              targetType: 'inline'
-              script: 'dir env:'
-
           - task: DownloadPackage@1
-            displayName: 'Get latest package'
+            displayName: 'Get latest configuration package'
             inputs:
               packageType: 'maven'
               feed: ''
@@ -91,18 +85,16 @@ stages:
                 ls -la $AGENT_WORKFOLDER
                 ls -la $AGENT_WORKFOLDER/_temp
                 printenv
-
           - task: replacetokens@3
             displayName: 'Replace tokens in  yaml config files'
             inputs:
               targetFiles: '$(Agent.WorkFolder)\_temp\**\*.yaml'
             env:
-              KEYVAULT_TENANTID: $(dev_keyvault_tenantId)
-              KEYVAULT_CLIENTID: $(dev_keyvault_clientId)
-              KEYVAULT_CLIENTSECRET: $(dev_keyvault_clientSecret)
-              CASSANDRA_PASSWORD: $(dev_cassandra_password)
-              DATABRICKS_USERNAME: $(dev_databricks_sc_username)
-              DP_PGP_PASSPHRASE: $(dev_dp_pgp_passphrase)
+              KEYVAULT_TENANTID: $(stage_keyvault_tenantId)
+              KEYVAULT_CLIENTID: $(stage_keyvault_clientId)
+              KEYVAULT_CLIENTSECRET: $(stage_keyvault_clientSecret)
+              CASSANDRA_PASSWORD: $(stage_cassandra_password)
+              DATABRICKS_USERNAME: $(stage_databricks_sc_username)
 
           - task: Bash@3
             displayName: 'Debug'
@@ -127,7 +119,7 @@ stages:
                 if $(printenv | grep -i 'package_deploy' | grep -q true);
                 then
                   mkdir $SYSTEM_DEFAULTWORKINGDIRECTORY/deploy;
-                  for included in $(printenv | grep -i 'package_deploy' | grep true | egrep -vi 'placholder');
+                  for included in $(printenv | grep -i 'package_deploy' | grep true | egrep -vi 'placeholder');
                   do
                     addpackage=$(echo $included | sed -rn 's#(.*)_PACKAGE_DEPLOY(.*)*#\L\1#p')
                     if [ "$addpackage" != "" ];
@@ -151,9 +143,9 @@ stages:
                 for item in $(find $SYSTEM_DEFAULTWORKINGDIRECTORY/deploy -type f -name '*deployment.yaml');
                 do
                   java -version;
-                  echo "java -cp $databricksJarPath common.deployment.Deploy --verbose --config $item";
+                  echo "java -cp $databricksJarPath .common.deployment.Deploy --verbose --config $item";
                   if [ -z "$DRY_RUN" ];
                   then
-                    java -cp $databricksJarPath common.deployment.Deploy --verbose --config $item;
+                    java -cp $databricksJarPath .common.deployment.Deploy --verbose --config $item;
                   fi
                 done

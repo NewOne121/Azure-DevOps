@@ -1,5 +1,5 @@
 packages:
-- name: sample
+- name: sample.common:sample
   package_version: ''
   packageid: ''
   package_sha: ''

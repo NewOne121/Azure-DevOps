@@ -1,0 +1,74 @@
+databricks:
+  baseUrl: '#{databricks_baseurl}#'
+  connectionTimeout: 100000
+  readTimeout: 100000
+  debug: true
+  clusterTimeout: 1000000
+keyVault:
+  url: '#{keyvault_url}#'
+  tenantId: '#{keyvault_tenantId}#'
+  clientId: '#{keyvault_clientId}#'
+  clientSecret: '#{keyvault_clientSecret}#'
+deployToken:
+  token: !secret "ServiceETLToken"
+  username: '#{databricks_username}#'
+additionalTokens:
+#mandatory section - blank by default
+cluster:
+  autoscale:
+    min_workers: 1
+    max_workers: 5
+  spark_version: '#{spark_version}#'
+  node_type_id: "Standard_DS3_v2"
+  cluster_name: '#{gdpr_job_name}#-autodeploy-#{sijcpgdpr.package.version}#-#{BUILD_BUILDNUMBER}#'
+  spark_conf:
+    - key: "spark.databricks.delta.preview.enabled"
+      value: "true"
+    - key: "spark.sql.hive.metastore.jars"
+      value: "builtin"
+    - key: "spark.sql.hive.metastore.version"
+      value: "1.2.1"
+    - key: "spark.driver.extraJavaOptions"
+      value: "-Dsun.security.krb5.debug=true -Djava.security.auth.login.config=/databricks/kafka-setup/kafka_jaas.config"
+    - key: "spark.executor.extraJavaOptions"
+      value: "-Dsun.security.krb5.debug=true -Djava.security.auth.login.config=/databricks/kafka-setup/kafka_jaas.config"
+  driver_node_type_id: "Standard_DS3_v2"
+  cluster_log_conf:
+    dbfs:
+     destination: "#{spark_logfile_destination_path}#"
+  init_scripts:
+    - dbfs:
+        destination: "dbfs:/databricks/scripts/external-metastore.sh"
+    - dbfs:
+        destination: "dbfs:/databricks/scripts/set_spark_params.sh"
+    - dbfs:
+        destination: "dbfs:/databricks/scripts/set_kafka_connectivity.sh"
+    - dbfs:
+        destination: "dbfs:/databricks/scripts/setup_log4j.sh"
+  autotermination_minutes: 30
+files:
+  - from: '#{SYSTEM_DEFAULTWORKINGDIRECTORY}#/#{jar_name}#-#{package.version}#.jar'
+    to: "/mnt/jars/#{jar_name}#-#{package.version}#.jar"
+  - from: "#{SYSTEM_DEFAULTWORKINGDIRECTORY}#/#{logging_jar_name}#-#{logging.package.version}#.jar"
+    to: "/mnt/jars/#{logging_jar_name}#-#{logging.package.version}#.jar"
+  - from: '#{SYSTEM_DEFAULTWORKINGDIRECTORY}#/deploy/#{config_file_name}#'
+    to: "/mnt/config/#{config_file_name}#"
+jobs:
+  - name: '#{gdpr_job_name}#'
+    timeout_seconds: 0
+    spark_jar_task:
+      main_class_name: '#{main_class_name}#'
+      parameters:
+        - "-c"
+        - "/dbfs/mnt/taof/config/#{config_file_name}#"
+        - "--verbose"
+    max_concurrent_runs: 1
+    libraries:
+      - jar: "dbfs:/mnt/jars/#{jar_name}#-#{package.version}#.jar"
+    email_notifications:
+      on_start: #{EMAIL_LIST}#
+      on_success: #{EMAIL_LIST}#
+      on_failure: #{EMAIL_LIST}#
+    schedule:
+      quartz_cron_expression: '#{cron_expression}#'
+      timezone_id: "UTC"

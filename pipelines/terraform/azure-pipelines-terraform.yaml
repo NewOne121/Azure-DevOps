@@ -1,0 +1,75 @@
+pool:
+  vmImage: 'ubuntu-latest'
+
+stages:
+  - stage: Deployment
+    jobs:
+      - job: Deploy_using_terraform
+        displayName: Validate_and_deploy
+        continueOnError: false
+        workspace:
+          clean: outputs
+        steps:
+          - task: TerraformInstaller@0
+            inputs:
+              terraformVersion: '0.12.23'
+
+          - task: TerraformCLI@0
+            inputs:
+              command: 'init'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/Terraform'
+              backendType: 'azurerm'
+              backendServiceArm: ''
+              backendAzureRmResourceGroupName: ''
+              backendAzureRmStorageAccountName: ''
+              backendAzureRmContainerName: ''
+              backendAzureRmKey: ''
+
+          - task: TerraformCLI@0
+            inputs:
+              command: 'validate'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/Terraform'
+
+          - task: TerraformCLI@0
+            condition: and(always(), ne(variables['Action'], 'Destroy'))
+            inputs:
+              command: 'plan'
+              commandOptions: '-out=$(System.DefaultWorkingDirectory)/Terraform/$(Build.BuildId)_plan.tfplan'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/Terraform'
+              environmentServiceName: ''
+
+          - task: PublishPipelineArtifact@1
+            condition: and(always(), ne(variables['Action'], 'Destroy'))
+            inputs:
+              targetPath: '$(System.DefaultWorkingDirectory)/Terraform/$(Build.BuildId)_plan.tfplan'
+              artifact: '$(Build.BuildId)-tfplan'
+              publishLocation: 'pipeline'
+          - task: TerraformCLI@0
+            condition: and(succeededOrFailed(), eq(variables['Action'], 'Deploy'))
+            inputs:
+              command: 'apply'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/Terraform'
+              environmentServiceName: ''
+
+  - stage: Destroy
+    jobs:
+      - job: Destory
+        steps:
+          - task: TerraformInstaller@0
+            inputs:
+              terraformVersion: '0.12.23'
+          - task: TerraformCLI@0
+            inputs:
+              command: 'init'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/Terraform'
+              backendType: 'azurerm'
+              backendServiceArm: ''
+              backendAzureRmResourceGroupName: ''
+              backendAzureRmStorageAccountName: ''
+              backendAzureRmKey: ''
+          - task: TerraformCLI@0
+            condition: and(always(), eq(variables['Action'], 'Destroy'))
+            inputs:
+              command: 'destroy'
+              workingDirectory: '$(System.DefaultWorkingDirectory)/Terraform'
+              environmentServiceName: ''

@@ -1,0 +1,22 @@
+customerIdentityPath: "#{mount_path}#"
+customerSuppressionType: ""
+sftpIngestionPath: '#{sftp_path}#'
+sftpIngestionArchivePath: '#{sftp_archive_path}#'
+ingestPath: '#{ingest_path}#'
+ingestLandingPath: '#{landing_path}#'
+
+sftpConfig:
+  username: '#{sftpstep_username}#'
+  password: '#{sftpstep_password}#'
+  host: '#{sftpstep_host}#'
+  port: '#{sftpStep_port}#'
+  targetDirectory: '#{sftp_directory}#'
+  temporaryPrefix: "Temp_"
+  pathSeparator: "/"
+
+cassandra:
+  host: '#{cassandra_host}#'
+  port: "10350"
+  username: '#{cassandra_username}#'
+  password: '#{cassandra_password}#'
+  sslEnabled: "true"

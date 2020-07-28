@@ -1,2 +1,5 @@
-- name: kafka_bootstrap_servers
-  value: '127.0.0.1:9091'
+variables:
+  - name: spark_version
+    value: "6.2.x-scala2.11"
+  - name: logging_jar_name
+    value: logging

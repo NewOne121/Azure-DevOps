@@ -1,0 +1,54 @@
+pool:
+  vmImage: 'windows-latest'
+
+
+steps:
+  - task: DownloadSecureFile@1
+    displayName: 'Download gradle.properties secure file'
+    inputs:
+      secureFile: gradle.properties
+
+  - powershell: |
+      New-Item -Type Directory -Force "${HOME}/.gradle"
+      Add-Content "$(Agent.WorkFolder)/_temp/gradle.properties" "`nartifactVersion=$(build.buildnumber)"
+      $path = “$(build.artifactstagingdirectory)” -replace "\\", "\\"
+      Add-Content “$(Agent.WorkFolder)/_temp/gradle.properties” “`nartifactDir=$path”
+      Copy-Item -Force "$(Agent.WorkFolder)/_temp/gradle.properties" "${HOME}/.gradle/gradle.properties"
+
+    displayName: 'Update and copy gradle.properties file'
+
+  - task: Gradle@2
+    displayName: 'gradlew shadowJar'
+    inputs:
+      gradleWrapperFile: 'gradlew'
+      tasks: shadowJar
+      publishJUnitResults: false
+
+  - task: CopyFiles@2
+    displayName: 'Copy Files to: $(build.artifactstagingdirectory)'
+    inputs:
+      SourceFolder: '$(system.defaultworkingdirectory)'
+      Contents: '**/*.jar'
+      TargetFolder: '$(build.artifactstagingdirectory)'
+    condition: succeededOrFailed()
+
+  - task: PublishBuildArtifacts@1
+    displayName: 'Publish Artifact: drop'
+    inputs:
+      PathtoPublish: '$(build.artifactstagingdirectory)'
+    condition: succeededOrFailed()
+
+  - powershell: |
+      Get-ChildItem -Path "$(build.artifactstagingdirectory)" -Include *.jar -Recurse | Copy-Item -Destination "$(build.artifactstagingdirectory)"
+
+    displayName: 'copy jar files to staging artifact directory'
+
+  - task: Gradle@2
+    displayName: 'gradlew publish'
+    inputs:
+      tasks: publish
+      publishJUnitResults: false
+
+  - task: SonarSource.sonarqube.6D01813A-9589-4B15-8491-8164AEB38055.SonarQubeAnalyze@4
+    displayName: 'Run Code Analysis'
+    enabled: false

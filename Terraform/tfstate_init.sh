@@ -9,4 +9,4 @@ az storage container create --name ffptfstatepractice --account-name defaulttfst
  | grep -A3 key1\
  | awk '/value/ {gsub ("\"",""); print $2}')
 
-az ad sp create-for-rbac --name terrafromservice
+az ad sp create-for-rbac --name terraformservice
