@@ -20,7 +20,7 @@ stages:
         workspace:
           clean: all
         steps:
-          - checkout: analytics
+          - checkout: reponame
             condition: and(succeededOrFailed(), eq(variables['src.project'], 'reponame'))
           - script: python -m pip install --upgrade pip setuptools wheel requests pyyaml argparse
             displayName: 'Install_python_deps'
@@ -30,7 +30,7 @@ stages:
               targetType: 'inline'
               failOnStderr: true
               script: |
-                python $SYSTEM_DEFAULTWORKINGDIRECTORY//pipelines/scripts/setup_environment.py --project $SRC_PROJECT || echo "echo $?; kill -9 $$" | bash
+                python $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/scripts/setup_environment.py --project $SRC_PROJECT || echo "echo $?; kill -9 $$" | bash
                 cat $(echo $SYSTEM_DEFAULTWORKINGDIRECTORY/$SRC_PROJECT/deployment/vars/pipeline.env) | sed -rn 's#^"?(.*)?\"{1}$#\1#p'
             env:
               APIUSER: $(devops_apiuser)
@@ -42,7 +42,7 @@ stages:
             inputs:
               targetType: 'inline'
               script: |
-                python $SYSTEM_DEFAULTWORKINGDIRECTORY//pipelines/scripts/setup_environment.py --override
+                python $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/scripts/setup_environment.py --override
             env:
               APIUSER: $(devops_apiuser)
               APIPASS: $(devops_apipass)
@@ -54,7 +54,7 @@ stages:
               targetType: 'inline'
               failOnStderr: true
               script: |
-                python $SYSTEM_DEFAULTWORKINGDIRECTORY//pipelines/scripts/setup_environment.py --validate\
+                python $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/scripts/setup_environment.py --validate\
                 || echo "kill -9 $$" | bash
             env:
               APIUSER: $(devops_apiuser)
