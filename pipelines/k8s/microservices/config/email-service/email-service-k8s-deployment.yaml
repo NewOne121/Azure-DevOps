@@ -1,0 +1,33 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: email-service-#{target}#
+  labels:
+    app: email-service-#{target}#
+  namespace: microservices
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: email-service-#{target}#
+  template:
+    metadata:
+      labels:
+        app: email-service-#{target}#
+    spec:
+      imagePullSecrets:
+        - name: 
+      containers:
+        - name: email-service-#{target}#
+          image: /microservices/dp-email-service
+          volumeMounts:
+            - mountPath: /emailapp/email-service.yaml
+              name: email-srv-#{target}#-volume
+              subPath: email-service.yaml
+          env:
+            - name: CONFIG_PATH
+              value: "/emailapp/email-service.yaml"
+      volumes:
+        - name: email-srv-#{target}#-volume
+          configMap:
+            name: email-srv-#{target}#-conf

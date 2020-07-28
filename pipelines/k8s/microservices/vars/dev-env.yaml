@@ -1,0 +1,15 @@
+variables:
+  - name: email_service_counts_topic
+    value: ""
+  - name: email_service_from_address
+    value: ""
+  - name: email_service_to_address
+    value: ""
+  - name: email_service_counts_state_dir
+    value: "/mnt/service_state"
+  - name: email_service__audit_failed_topic
+    value: "audit_count_check_failed"
+  - name: email_service__audit_failed_state_dir
+    value: "/mnt/service_state/audit_count_check_failed"
+  - name: kafka_bootstrap_servers
+    value: ""

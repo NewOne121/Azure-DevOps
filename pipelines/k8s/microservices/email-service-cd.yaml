@@ -1,0 +1,60 @@
+pool:
+  vmImage: 'ubuntu-latest'
+
+variables:
+  - group: DevOps
+  - name: TARGET
+    value: dev
+
+stages:
+  - stage: 'Deploy_microservice_to_AKS'
+    jobs:
+      - job:
+        workspace:
+          clean: all
+        steps:
+          - script: python -m pip install --upgrade pip setuptools wheel requests pyyaml argparse
+            displayName: 'Install_python_deps'
+
+          - task: Bash@3
+            displayName: 'Set_pipeline_environment'
+            inputs:
+              targetType: 'inline'
+              script: |
+                python $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/scripts/setup_environment.py --microservice --envconfig email-service.yaml || echo "echo $?; kill -9 $$" | bash
+                cat $SYSTEM_DEFAULTWORKINGDIRECTORY/pipelines/vars/pipeline.env
+            env:
+              APIUSER: $(devops_apiuser)
+              APIPASS: $(devops_apipass)
+
+          - task: Bash@3
+            displayName: 'Debug_env'
+            inputs:
+              targetType: 'inline'
+              script: |
+                printenv
+
+          - task: replacetokens@3
+            displayName: 'Replace tokens in  yaml config files'
+            inputs:
+              targetFiles: '$(System.DefaultWorkingDirectory)\pipelines\microservices\config\*.yaml'
+            env:
+              DP_SENDGRID_APIKEY: $(sendgrid_apikey)
+
+          - task: Kubernetes@1
+            inputs:
+              connectionType: 'Azure Resource Manager'
+              azureSubscriptionEndpoint: ''
+              azureResourceGroup: ''
+              kubernetesCluster: ''
+              namespace: 'microservices'
+              command: 'apply'
+              useConfigurationFile: true
+              configuration: 'configuration/k8s/microservices/config/email-service/email-service-k8s-deployment.yaml'
+              secretType: 'dockerRegistry'
+              containerRegistryType: 'Azure Container Registry'
+              azureSubscriptionEndpointForSecrets: ''
+              azureContainerRegistry: ''
+              secretName: ''
+
+

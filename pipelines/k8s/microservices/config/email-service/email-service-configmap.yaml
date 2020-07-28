@@ -1,0 +1,26 @@
+apiVersion: v1
+kind: ConfigMap
+metadata:
+  namespace: microservices
+  name: email-srv-#{target}#-conf
+data:
+  email-service.yaml: |
+    taofCounts:
+      topic: "#{email_service_counts_topic}#"
+      subject: "[EXTERNAL] Outbound Job Finished: Count Numbers"
+      from: "#{email_service_from_address}#"
+      to: "#{email_service_to_address}#"
+      stateDir: "#{email_service_counts_state_dir}#"
+
+    taofAuditFailed:
+      topic: "#{email_service_audit_failed_topic}#"
+      subject: "[EXTERNAL] Pipeline Fails due to Audit Count Check"
+      from: "#{email_service_from_address}#"
+      to: "#{email_service_to_address}#"
+      stateDir: "#{email_service_audit_failed_state_dir}#"
+
+    kafka:
+      bootstrapServers: #{kafka_bootstrap_servers}#
+
+    sendGrid:
+      apiKey: #{dp_sendgrid_apikey}#
