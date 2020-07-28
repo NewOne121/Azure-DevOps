@@ -21,7 +21,7 @@ stages:
           clean: all
         steps:
           - checkout: analytics
-            condition: and(succeededOrFailed(), eq(variables['src.project'], 'dp-analytics-2.0'))
+            condition: and(succeededOrFailed(), eq(variables['src.project'], 'reponame'))
           - script: python -m pip install --upgrade pip setuptools wheel requests pyyaml argparse
             displayName: 'Install_python_deps'
           - task: Bash@3
